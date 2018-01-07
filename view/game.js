@@ -1,7 +1,12 @@
 //https://phaser.io/tutorials/making-your-first-phaser-game/part2
 
+
 var platforms;
 var player;
+var score = 0;
+var scoreText;
+
+
 
 var state = {
     preload: function(){
@@ -40,6 +45,22 @@ var state = {
         
         ledge.body.immovable = true;
         
+        //Populate the stars
+        stars = game.add.group();
+        stars.enableBody = true;
+        
+        //Here we'll create 12 of them  evenly spaced apart
+        for(var i = 0; i < 12; i++){
+            var star = stars.create(i * 70, 0, 'star');
+            //Let gravity do things
+            star.body.gravity.y = 6;
+            //Give each star slightly random bounce values
+            star.body.bounce.y = 0.7 + Math.random() * 0.2;
+        }
+        
+        //Add the score text
+        scoreText = game.add.text(16, 16, 'Score: 0', {fontSize: '32px', fill: '#000'});
+        
         //The player and its properties
         player = game.add.sprite(32, game.world.height - 150, 'dude');
         
@@ -54,10 +75,46 @@ var state = {
         //Our two animations, walking left and right. The 'true' is an answer to some loop? boolean
         player.animations.add('left', [0, 1, 2, 3], 10, true);
         player.animations.add('right', [5, 6, 7, 8], 10, true);
+        
+        //Cursor
+        cursors = game.input.keyboard.createCursorKeys();
     },
     update: function(){
         //Collide the player and the stars with the platforms
         var hitPlatform = game.physics.arcade.collide(player, platforms);
+        //Collide the stars w/ platform
+        var hitStar = game.physics.arcade.collide(stars, platforms);
+        //Check if player overlaps with stars
+        var starOverlap = game.physics.arcade.overlap(player, stars, collectStar, null, this);
+        function collectStar(player, star){
+            star.kill();
+            //Add and update the score
+            score += 10;
+            scoreText.text = 'Score: ' + score;
+        }
+        //Reset player's velocity (movement)
+        player.body.velocity.x = 0;
+        
+        if(cursors.left.isDown){
+            //Move left
+            player.body.velocity.x = -150;
+            player.animations.play('left');
+        }
+        else if(cursors.right.isDown){
+            //Move right
+            player.body.velocity.x = 150;
+            player.animations.play('right');
+        }
+        else{
+            //Stand still
+            player.animations.stop();
+            player.frame = 4;
+        }
+        
+        //Allow player to jump if on the ground
+        if(cursors.up.isDown && player.body.touching.down && hitPlatform){
+            player.body.velocity.y = -200;
+        }
     }
 }
 
@@ -68,3 +125,4 @@ var game = new Phaser.Game(
     'game',
     state
 )
+
